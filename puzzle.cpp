@@ -41,31 +41,44 @@ PIECE PIECE   A   B   x
 
 using namespace std;
 
-void insert(auto chessboard, auto set_pieces)
-{
-    // r = row atual; c = column atual
+vector<vector<int>> puzzle[51][51];
+int R, C;
 
+void insert(set_pieces, row, column)
+{
     // se chegou ao fim da linha, muda de linha
-    if (c == C)
+    if (column == C - 1)
     {
-        r++;
-        c = 0;
+        row++;
+        column = 0;
     }
 
-    pieceA = chessboard[r][c - 1]; // a peça à ESQUERDA da que quero inserir
-    pieceB = chessboard[r][c];     // a que quero INSERIR
-    pieceC = chessboard[r - 1][c]; // a peça EM CIMA da que quero inserir
+    if (row == R - 1 && column == C - 1)
+    {
+        // colocar última peça
+        return;
+    }
+
+    pieceA = puzzle[row][column - 1]; // a peça à ESQUERDA da que quero inserir
+    pieceB = puzzle[row][column];     // a que quero INSERIR
+    pieceC = puzzle[row - 1][column]; // a peça EM CIMA da que quero inserir
     int upper_left = pieceB[0];
     int upper_right = pieceB[1];
     int bottom_left = pieceB[3];
 
     int counter = 1;
-    if (r == 0)
+    if (row == 0)
     {
         while (upper_left != pieceA[1] && down_left != pieceA[2])
         {
             if (counter == 4)
-                return;
+                if (column != 1)
+                    return insert(set_pieces, row, column - 1);
+                else
+                {
+                    cout << "impossible puzzle!" << endl;
+                    return;
+                }
             // roda a peça
             upper_left = pieceB[0 + counter % 4];
             bottom_left = pieceB[3 + counter % 4];
@@ -75,12 +88,12 @@ void insert(auto chessboard, auto set_pieces)
 
     else
     {
-        if (c == 0)
+        if (column == 0)
         {
             while (upper_left != pieceC[3] && upper_right != pieceC[2])
             {
                 if (counter == 4)
-                    return;
+                    return insert(set_pieces, row - 1, C);
                 // roda a peça
                 upper_left = pieceB[0 + counter % 4];
                 upper_right = pieceB[1 + counter % 4];
@@ -90,10 +103,10 @@ void insert(auto chessboard, auto set_pieces)
 
         else
         {
-            while (upper_left != (pieceC[4] || pieceA[1]) && upper_right != pieceC[3] && bottom_left != pieceA[3])
+            while ((upper_left != pieceC[4] || upper_left != pieceA[1]) && upper_right != pieceC[3] && bottom_left != pieceA[3])
             {
                 if (counter == 4)
-                    return;
+                    return insert(set_pieces, row - 1, column - 1);
                 // roda a peça
                 upper_left = pieceB[0 + counter % 4];
                 upper_right = pieceB[1 + counter % 4];
@@ -104,16 +117,15 @@ void insert(auto chessboard, auto set_pieces)
     }
 
     // se números coincidem. chama recursivamente
-    chessboard[r++][c++];
-    insert(chessboard, pieceC);
+    insert(set_pieces, row + 1, column + 1);
 
     // acrescentar peça ao tabuleiro
-    chessboard[r][c] = index da peça;
+    puzzle[r][c] = index da peça;
 }
 
 int main()
 {
-    int n_test_cases, N, R, C, side;
+    int n_test_cases, N, color;
     vector<int> piece;
     vector<vector<int>> set_pieces;
 
@@ -124,27 +136,29 @@ int main()
 
         // leitura de dados
         cin >> N >> R >> C;
-        int chessboard[R][C];
+
         for (int j = 0; j < N; j++)
         {
             for (int k = 0; k < 4; k++)
             {
-                cin >> side;
-                piece.push_back(side);
-            }
-            if (j == 0)
-            {
-                chessboard[0][0] = 0;
+                cin >> color;
+                piece.push_back(color);
             }
             set_pieces.push_back(piece);
+
+            // coloca a primeira peça no puzzle
+            if (j == 0)
+                puzzle[0][0] = set_pieces[0];
         }
 
         // chamar recursão aqui para cada caso de teste
-        insert(chessboard, set_pieces);
+        int row = 0;
+        int column = 1;
+        insert(set_pieces, row, column);
 
         // isto é para verificar se um index já foi colocado no tabuleiro, não sei se
         // podemos otimizar isto melhor
-        bool piece_exists_in_chessboard = find(begin(chessboard), end(chessboard), piece) != end(chessboard);
+        bool piece_exists_in_puzzle = find(begin(puzzle), end(puzzle), piece) != end(puzzle);
     }
     return 0;
 }
