@@ -124,12 +124,14 @@ int main(){
         // solve puzzle
         if (placePiece(board, pieces, 0, 1)){
             for (int j = 0; j < rows; j++){
-                for (int k = 0; k < cols; k++)
+                for (int k = 0; k < cols - 1; k++)
                     std::cout << board[j][k][0] << " " << board[j][k][1] << "  ";
+                std::cout << board[j][cols-1][0] << " " << board[j][cols - 1][1];
                 std::cout<< std::endl;
 
-                for (int k = 0; k < cols; k++)
+                for (int k = 0; k < cols - 1; k++)
                     std::cout << board[j][k][3] << " " << board[j][k][2] << "  ";
+                std::cout << board[j][cols - 1][3] << " " << board[j][cols - 1][2];
                 if (j < rows-1 ) std::cout << std::endl << std::endl;
                 else std::cout << std::endl;
             }
