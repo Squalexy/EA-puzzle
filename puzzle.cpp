@@ -43,6 +43,7 @@ PIECE PIECE   A   B   x
 #include <array>
 #include <chrono>
 #include <map>
+#include <cstring>
 
 using namespace std;
 
@@ -50,7 +51,7 @@ using namespace std;
 
 typedef struct piece_t
 {
-    int id;
+    array<int, 2> id;
     array<int, 4> sides;
     bool visited;
     bool operator<(const piece_t &other) const { return id < other.id; }
@@ -58,53 +59,29 @@ typedef struct piece_t
 
 array<array<piece, 50>, 50> puzzle;
 map<piece, pair<vector<piece>, vector<piece>>> dic;
-int R, C, F;
-int visited = 0;
+int N, R, C, F;
+unsigned long int visited = 0;
 piece p_up;
+int personnal_id;
+array<bool, 2500> is_visited;
+int pieces_on_board = 0;
 
 // --------------------------------------------------------------------------------- //
 
 bool check_horizontal_pair(piece p1, piece p2)
 {
-    int counter = 1;
-    int side1 = p2.sides[0], side2 = p2.sides[1], side3 = p2.sides[2], side4 = p2.sides[3];
-    // rotates p2
-    while (p1.sides[1] != side1 || p1.sides[2] != side4)
-    {
-
-        if (counter == 4)
-        {
-            return false;
-        }
-        side1 = p2.sides[(0 + counter) % 4];
-        side2 = p2.sides[(1 + counter) % 4];
-        side3 = p2.sides[(2 + counter) % 4];
-        side4 = p2.sides[(3 + counter) % 4];
-        counter++;
-    }
-    p2.sides[0] = side1, p2.sides[1] = side2, p2.sides[2] = side3, p2.sides[3] = side4;
-    return true;
+    if (p1.sides[1] != p2.sides[0] || p1.sides[2] != p2.sides[3])
+        return false;
+    else
+        return true;
 }
 
 bool check_vertical_pair(piece p1, piece p2)
 {
-    int counter = 1;
-    int side1 = p2.sides[0], side2 = p2.sides[1], side3 = p2.sides[2], side4 = p2.sides[3];
-    // rotates p2
-    while (p1.sides[3] != side1 || p1.sides[2] != side2)
-    {
-        if (counter == 4)
-        {
-            return false;
-        }
-        side1 = p2.sides[(0 + counter) % 4];
-        side2 = p2.sides[(1 + counter) % 4];
-        side3 = p2.sides[(2 + counter) % 4];
-        side4 = p2.sides[(3 + counter) % 4];
-        counter++;
-    }
-    p2.sides[0] = side1, p2.sides[1] = side2, p2.sides[2] = side3, p2.sides[3] = side4;
-    return true;
+    if (p1.sides[3] != p2.sides[0] || p1.sides[2] != p2.sides[1])
+        return false;
+    else
+        return true;
 }
 
 void add_pair(int side, piece p1, piece p2)
@@ -127,7 +104,7 @@ void add_values()
     {
         for (auto const &[key2, val2] : dic)
         {
-            if (key.id == key2.id || key2.id == 0) // we don't want to use 1st piece
+            if (key.id[0] == key2.id[0] || key2.id[0] == 0) // we don't want to use 1st piece
             {
                 continue;
             }
@@ -147,24 +124,25 @@ void print_dic()
 {
     for (auto const &[key, val] : dic)
     {
-        cout << "Key: " << key.sides[0] << key.sides[1] << key.sides[2] << key.sides[3] << endl;
-        cout << endl;
+        cout << "ID(" << key.id[0] << "," << key.id[1] << ") --- { " << key.sides[0] << key.sides[1] << key.sides[2] << key.sides[3] << "}" << endl;
 
-        cout << "1st Values: ";
+        cout << "Left -->";
         for (auto p : val.first)
         {
-            cout << " --- ";
+            cout << "[";
             for (int i = 0; i < 4; i++)
                 cout << p.sides[i];
+            cout << "]   ";
         }
 
         cout << endl;
-        cout << "2nd Values: ";
+        cout << "Down -->";
         for (auto p : val.second)
         {
-            cout << " --- ";
+            cout << "[";
             for (int i = 0; i < 4; i++)
                 cout << p.sides[i];
+            cout << "]   ";
         }
         cout << endl
              << endl;
@@ -175,6 +153,9 @@ void print_dic()
 void place_piece(int row, int column, piece p)
 {
     puzzle[row][column] = p;
+    pieces_on_board++;
+    // cout << endl << "Added piece ID(" << p.id[0] << "," << p.id[1] << ") on puzzle[" << row << "][" << column << "]" << endl;
+    // cout << "Current pieces on board: " << pieces_on_board << endl;
 }
 
 // peça p2 é a peça que já inseri no puzzle
@@ -182,28 +163,38 @@ void place_piece(int row, int column, piece p)
 void look_pairs(int row, int column, piece p2)
 {
 
-    p2.visited = true;
-    visited++;
+    if (pieces_on_board == N)
+        return;
+
+    // cout << "ID(" << p2.id[0] << "," << p2.id[1] << ") has now been visited!" << endl;
+    is_visited[p2.id[0]] = true;
+    // cout << "ID(" << p2.id[0] << "," << p2.id[1] << ") is now true(" << is_visited[p2.id[0]] << ")" << endl;
+
+    place_piece(row, column, p2);
+
+    column++;
+    // cout << "[BEFORE IF] Row " << row << " Col " << column << endl;
 
     // muda para a linha seguinte quando chega ao fim da linha
-    if (column == C)
+    if (column == C && row != R - 1)
     {
-        p_up = puzzle[row][0]; // já não vou pegar na peça p2 mas sim na peça p_up para comparar se posso colocar em baixo desta
         row++;
         column = 0;
     }
 
+    // cout << "[AFTER IF] Row " << row << " Col " << column << endl << endl;
+
     // ----------------------------------------------------------------------------------------------- //
     // na 1º linha percorre apenas os valores do 1º array da peça à esquerda
 
-    if (row == 0)
+    if (row == 0 && !dic[p2].first.empty())
     {
-        for (int i = 0; i < dic[p2].first.size(); i++)
+        for (unsigned long int i = 0; i < dic[p2].first.size(); i++)
         {
-            if (dic[p2].first[i].visited == false)
+            // cout << "[ROWS == 0] Checking if ID(" << dic[p2].first[i].id[0] << "," << dic[p2].first[i].id[1] << ") has been visited" << endl;
+            if (is_visited[dic[p2].first[i].id[0]] == false)
             {
-                place_piece(row, column, dic[p2].first[i]);
-                column++;
+                // cout << "[ROWS == 0] ID(" << dic[p2].first[i].id[0] << "," << dic[p2].first[i].id[1] << ") hasn't been visited yet!" << endl;
                 look_pairs(row, column, dic[p2].first[i]);
             }
         }
@@ -215,16 +206,19 @@ void look_pairs(int row, int column, piece p2)
 
     if (row != 0)
     {
-
         if (column == 0)
         {
-            for (int i = 0; i < dic[p_up].second.size(); i++)
+            p_up = puzzle[row][0];
+            if (!dic[p_up].first.empty())
             {
-                if (dic[p_up].second[i].visited == false)
+                for (unsigned long int i = 0; i < dic[p_up].second.size(); i++)
                 {
-                    place_piece(row, column, dic[p_up].second[i]);
-                    column++;
-                    look_pairs(row, column, dic[p_up].second[i]);
+                    // cout << "[ROWS != 0, COLUMN == 0] Checking if ID(" << dic[p_up].second[i].id[0] << "," << dic[p_up].second[i].id[1] << ") has been visited" << endl;
+                    if (is_visited[dic[p_up].second[i].id[0]] == false)
+                    {
+                        // cout << "[ROWS != 0, COLUMN == 0] ID(" << dic[p_up].second[i].id[0] << "," << dic[p_up].second[i].id[1] << ") hasn't been visited yet!" << endl;
+                        look_pairs(row, column, dic[p_up].second[i]);
+                    }
                 }
             }
         }
@@ -235,16 +229,17 @@ void look_pairs(int row, int column, piece p2)
 
         if (column != 0)
         {
-
-            p_up = puzzle[row - 1][column - 1]; // como já tenho uma peça à esquerda, agora só preciso de comparar com a de cima
-
-            for (int i = 0; i < dic[p_up].second.size(); i++)
+            p_up = puzzle[row - 1][column]; // como já tenho uma peça à esquerda, agora só preciso de comparar com a de cima
+            if (!dic[p_up].first.empty())
             {
-                if (dic[p_up].second[i].visited == false)
+                for (unsigned long int i = 0; i < dic[p_up].second.size(); i++)
                 {
-                    place_piece(row, column, dic[p_up].second[i]);
-                    column++;
-                    look_pairs(row, column, dic[p_up].second[i]);
+                    // cout << "[ROWS != 0, COLUMN != 0] Checking if ID(" << dic[p_up].second[i].id[0] << "," << dic[p_up].second[i].id[1] << ") has been visited" << endl;
+                    if (is_visited[dic[p_up].second[i].id[0]] == false)
+                    {
+                        // cout << "[ROWS != 0, COLUMN != 0] ID(" << dic[p_up].second[i].id[0] << "," << dic[p_up].second[i].id[1] << ") hasn't been visited yet!" << endl;
+                        look_pairs(row, column, dic[p_up].second[i]);
+                    }
                 }
             }
         }
@@ -255,8 +250,13 @@ void look_pairs(int row, int column, piece p2)
     // por isso, voltamos atrás na recursão, voltamos à coluna de trás
     // se já estávamos na coluna 0 e queríamos inserir a peça aí, então voltamos à linha de trás, última coluna
 
-    p2.visited = false;
-    visited--;
+    if (pieces_on_board == N)
+        return;
+
+    // cout << endl << "! PIECE ID(" << p2.id[0] << "," << p2.id[1] << ") ISN'T GONNA WORK ! going back..." << endl;
+
+    is_visited[p2.id[0]] = false;
+    pieces_on_board--;
 
     if (column == 0)
     {
@@ -272,39 +272,74 @@ void look_pairs(int row, int column, piece p2)
 
 void print_puzzle()
 {
-    for (int i = 0; i < R; i++)
+    for (int j = 0; j < R; j++)
     {
-        for (int j = 0; j < C; j++)
-        {
-            cout << puzzle[i][j].id << "  ";
-        }
-        cout << endl
-             << endl;
+        for (int k = 0; k < C - 1; k++)
+            cout << puzzle[j][k].sides[0] << " " << puzzle[j][k].sides[1] << "  ";
+        cout << puzzle[j][C - 1].sides[0] << " " << puzzle[j][C - 1].sides[1];
+        cout << endl;
+
+        for (int k = 0; k < C - 1; k++)
+            cout << puzzle[j][k].sides[3] << " " << puzzle[j][k].sides[2] << "  ";
+        cout << puzzle[j][C - 1].sides[3] << " " << puzzle[j][C - 1].sides[2];
+        if (j < R - 1)
+            cout << endl
+                 << endl;
+        else
+            cout << endl;
     }
 }
 
 int main()
 {
-    int n_test_cases, N;
+    int n_test_cases;
     cin >> n_test_cases;
 
     for (int i = 0; i < n_test_cases; i++)
     {
+        personnal_id = 0;
+        pieces_on_board = 0;
+        is_visited = {false};
+
         cin >> N >> R >> C;
 
         for (int j = 0; j < N; j++)
         {
-            piece p;
-            p.visited = false;
-            if (j == 0)
-                p.visited = true; // 1st piece will never be used again
-            p.id = j;
-            cin >> p.sides[0] >> p.sides[1] >> p.sides[2] >> p.sides[3];
-            dic[p] = make_pair(vector<piece>(), vector<piece>());
 
-            // puts 1st piece of the puzzle
             if (j == 0)
-                puzzle[0][0] = p;
+            {
+                piece p1;
+                cin >> p1.sides[0] >> p1.sides[1] >> p1.sides[2] >> p1.sides[3];
+
+                p1.id[0] = j;
+                p1.id[1] = personnal_id++;
+                is_visited[p1.id[0]] = true; // 1st piece will never be used again
+                dic[p1] = make_pair(vector<piece>(), vector<piece>());
+
+                puzzle[0][0] = p1;
+                pieces_on_board++;
+            }
+
+            else
+            {
+                piece p1;
+                piece p2;
+                piece p3;
+                piece p4;
+                cin >> p1.sides[0] >> p1.sides[1] >> p1.sides[2] >> p1.sides[3];
+                p2.sides[0] = p1.sides[3], p2.sides[1] = p1.sides[0], p2.sides[2] = p1.sides[1], p2.sides[3] = p1.sides[2];
+                p3.sides[0] = p2.sides[3], p3.sides[1] = p2.sides[0], p3.sides[2] = p2.sides[1], p3.sides[3] = p2.sides[2];
+                p4.sides[0] = p3.sides[3], p4.sides[1] = p3.sides[0], p4.sides[2] = p3.sides[1], p4.sides[3] = p3.sides[2];
+
+                p1.id[0] = j, p2.id[0] = j, p3.id[0] = j, p4.id[0] = j;
+                p1.id[1] = personnal_id++, p2.id[1] = personnal_id++, p3.id[1] = personnal_id++, p4.id[1] = personnal_id++;
+                is_visited[p1.id[0]] = false;
+
+                dic[p1] = make_pair(vector<piece>(), vector<piece>());
+                dic[p2] = make_pair(vector<piece>(), vector<piece>());
+                dic[p3] = make_pair(vector<piece>(), vector<piece>());
+                dic[p4] = make_pair(vector<piece>(), vector<piece>());
+            }
         }
 
         // 1 --> pre-processing
@@ -313,17 +348,19 @@ int main()
 
         // 2 --> recursive step
         auto iter = dic.begin();
-        look_pairs(0, 1, iter->second.first[0]); // 1st key, 1st value of 1st array of 1st key
+        for (unsigned long int i = 0; i < iter->second.first.size(); i++)
+        {
+            look_pairs(0, 1, iter->second.first[i]); // 1st value of 1st array of 1st key
+        }
 
         // 3 --> printing result
-        if (visited != dic.size())
-            cout << "IMPOSSIBLE PUZZLE!" << endl;
-        else
-            print_dic();
+        /*if (pieces_on_board != N)
+            cout << "impossible puzzle!" << endl;
+        else*/
+        print_puzzle();
 
         // 4 --> clear current dictionary
         dic.clear();
-        visited = 0;
     }
 
     return 0;

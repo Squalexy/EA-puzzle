@@ -7,6 +7,8 @@
         "vector": "cpp",
         "iostream": "cpp",
         "ostream": "cpp",
-        "xtree": "cpp"
-    }
+        "xtree": "cpp",
+        "xlocale": "cpp"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }
