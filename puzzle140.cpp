@@ -14,6 +14,7 @@ typedef struct piece_t
     array<int, 4> sides;
 
     bool operator==(const piece_t &other) const {return other.id == id && other.rotation == rotation;}
+    bool operator<(const piece_t &other) const {return id < other.id || (id == other.id && rotation < other.rotation);}
 } piece;
 
 struct pieceHasher
@@ -26,6 +27,7 @@ struct pieceHasher
 
 array<array<piece, 50>, 50> puzzle;
 unordered_map<piece, pair<vector<piece>, vector<piece>>, pieceHasher> dic;
+array<int, 1000> num_count;
 array<bool, 2500> visited;
 int R, C, F;
 // --------------------------------------------------------------------------------- //
@@ -93,9 +95,9 @@ bool solvePuzzle(int row, int col){
 
     if (row == 0){
         piece left = puzzle[row][col - 1];
-        vector<piece> match_left =dic[left].first;
+        //vector<piece> match_left =dic[left].first;
 
-        for (piece p : match_left){
+        for (piece p : dic[left].first){
             if (!visited[p.id]){
                 puzzle[row][col] = p;
                 visited[p.id] = true;
@@ -107,9 +109,9 @@ bool solvePuzzle(int row, int col){
 
     if (col == 0){
         piece up = puzzle[row - 1][col];
-        vector<piece> match_up = dic[up].second;
+        //vector<piece> match_up = dic[up].second;
 
-        for (piece p : match_up){
+        for (piece p : dic[up].second){
             if (!visited[p.id]){
                 puzzle[row][col] = p;
                 visited[p.id] = true;
@@ -123,12 +125,12 @@ bool solvePuzzle(int row, int col){
         piece up = puzzle[row - 1][col];
         piece left = puzzle[row][col - 1];
 
-        vector<piece> match_left =dic[left].first;
-        vector<piece> match_up = dic[up].second;
+        //vector<piece> match_left =dic[left].first;
+        //vector<piece> match_up = dic[up].second;
 
-        for (piece p_up : match_up){
+        for (piece p_up : dic[up].second){
             if (visited[p_up.id]) continue;
-            for (piece p_left : match_left){
+            for (piece p_left :dic[left].first){
                 if (!visited[p_left.id] && p_left.id == p_up.id){
                     puzzle[row][col] = p_left;
                     visited[p_left.id] = true;
@@ -173,6 +175,8 @@ int main()
     for (int i = 0; i < n_test_cases; i++)
     {
         cin >> N >> R >> C;
+        int flag = 0;
+        num_count = {0};
 
         // first piece is placed on the board as is
         p.id = 0;
@@ -183,6 +187,12 @@ int main()
         puzzle[0][0] = p;
         visited[0] = true;
 
+        num_count[p.sides[0]] ++;
+        num_count[p.sides[1]] ++;
+        num_count[p.sides[2]] ++;
+        num_count[p.sides[3]] ++;
+
+
         // add other pieces in all their possible rotations
         for (int j = 1; j < N; j++)
         {
@@ -191,6 +201,10 @@ int main()
             p.id = j;
             visited[j] = false;
             cin >> side0 >> side1 >> side2 >> side3;
+            num_count[side0] ++;
+            num_count[side1] ++;
+            num_count[side2] ++;
+            num_count[side3] ++;
 
             for (int k = 0; k < 4; k++)
             {
@@ -204,18 +218,32 @@ int main()
             }
         }
 
-        // pre-processing
-        add_values();
-
-        // recursive call
-        if (solvePuzzle(0, 1)){
-            print_puzzle();
+        // check if puzzle is even possible to be completed
+        int odd_counter = 0;
+        for (int num : num_count){
+            if (num % 2 != 0) odd_counter++;
+            if (odd_counter > 4)
+            {
+                cout << "impossible puzzle!" << endl;
+                flag = 1;
+                break;
+            }
         }
-        else{
-            cout << "impossible puzzle!" << endl;
-        }
+        
+        if (flag == 0){
+            // pre-processing
+            add_values();
 
-        // clear map for next test case
+            // recursive call
+            if (solvePuzzle(0, 1)){
+                print_puzzle();
+            }
+            else{
+                cout << "impossible puzzle!" << endl;
+            }
+
+            // clear maps for next test case
+        }
         dic.clear();
     }
 
