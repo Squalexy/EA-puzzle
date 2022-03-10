@@ -2,6 +2,7 @@
 #include <vector>
 #include <array>
 #include <unordered_map>
+#include <algorithm>
 
 using namespace std;
 
@@ -14,14 +15,14 @@ typedef struct piece_t
     array<int, 4> sides;
 
     bool operator==(const piece_t &other) const {return other.id == id && other.rotation == rotation;}
-    bool operator<(const piece_t &other) const {return id < other.id || (id == other.id && rotation < other.rotation);}
+    bool operator<(piece_t other) const {return id < other.id || (id == other.id && rotation < other.rotation);}
 } piece;
 
 struct pieceHasher
 {
     size_t operator()(const piece_t &p) const
     {
-        return hash<int>()((p.id * 10) + p.rotation);
+        return hash<int>()((p.id * 7) + p.rotation);
     }
 };
 
@@ -62,9 +63,9 @@ void add_pair(int side, piece me, piece other)
 
 void add_values()
 {
-    for (auto const &[key, val] : dic)
+    for (auto &[key, val] : dic)
     {
-        for (auto const &[key2, val2] : dic)
+        for (auto &[key2, val2] : dic)
         {
             if (key.id == key2.id || key2.id == 0) // we don't want to use 1st piece
             {
@@ -79,6 +80,11 @@ void add_values()
                 add_pair(1, key, key2);
             }
         }
+
+        
+        sort(val.first.begin(), val.first.end());
+        sort(val.second.begin(), val.second.end());
+        
     }
 }
 
@@ -128,15 +134,15 @@ bool solvePuzzle(int row, int col){
         //vector<piece> match_left =dic[left].first;
         //vector<piece> match_up = dic[up].second;
 
-        for (piece p_up : dic[up].second){
-            if (visited[p_up.id]) continue;
-            for (piece p_left :dic[left].first){
-                if (!visited[p_left.id] && p_left.id == p_up.id){
-                    puzzle[row][col] = p_left;
-                    visited[p_left.id] = true;
-                    if (solvePuzzle(next_row, next_col)) return true;
-                    visited[p_left.id] = false;
-                }
+        vector <piece> pieces_int = vector <piece>(min(dic[up].second.size(), dic[left].first.size()));
+        set_intersection(dic[up].second.begin(), dic[up].second.end(), dic[left].first.begin(), dic[left].first.end(), pieces_int.begin());
+
+        for (piece p : pieces_int){
+            if (!visited[p.id]){
+                puzzle[row][col] = p;
+                visited[p.id] = true;
+                if (solvePuzzle(next_row, next_col)) return true;
+                visited[p.id] = false;
             }
         }
     }
